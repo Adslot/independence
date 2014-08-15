@@ -92,3 +92,17 @@ smootieTest = smootie.override
   fruit: fruitData.override database: databaseTest
 ```
 
+
+Using with mocha
+----------------------
+
+If you're using *mocha* module for running unit tests you can use a wrapper which compiles and wraps
+coffee files with independence header. So that you can seemlessly use DI in your tests.
+
+In package.json:
+
+```
+"scripts": {
+  "test":  "mocha --compilers coffee:independence/bin/wrapper"
+}
+```
