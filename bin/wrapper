@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+
+/*
+ * This module is used to compile CoffeeScript into JavaScript wrapped with the
+ * independence header to make dependency injection available in tests.
+ *
+ * It can be run directly from the command line as
+ *
+ * $ coffee-wrap [coffee files]
+ *
+ * in this case it will behave as `coffee -c`, creating new .js files for each
+ * .coffee file provided as an argument.
+ *
+ * Otherwise, the module can be required as a normal Node module and in this case
+ * it will register itself as a compiler for all required .coffee modules.
+ */
+
+var coffeeScript = require('coffee-script')
+var fs = require('fs')
+
+
+var wrap = function(code) {
+  return "require('independence')(require, module, (function (require, module, exports) {" + code + "}))"
+}
+
+
+var register = function() {
+  coffeeScript.register()
+  require.extensions['.coffee'] = function(module, filename) {
+    var answer = coffeeScript._compileFile(filename, false)
+    return module._compile(wrap(answer), filename)
+  }
+}
+
+
+var main = function() {
+  var match, jsFilename;
+
+  process.argv.slice(2).forEach(function(filename) {
+    if (!(match = filename.match(/(.*)\.coffee$/))) return
+    jsFilename = match[1] + '.js'
+    fs.writeFile(jsFilename, wrap(coffeeScript._compileFile(filename, false)))
+  })
+}
+
+
+require.main === module ? main() : register()
+
