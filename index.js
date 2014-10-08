@@ -17,54 +17,61 @@ var independence = module.exports = function(_require, _module, moduleInjector) 
 
   function defineMethod(name) {
 
+    //TODO if _exports is not a object or function add a normal attribute
+
     // It's important that the added methods are non-enumerable
     Object.defineProperty(_exports, name, {
       enumerable: false,
       configurable: true,
-      value: function() { return makeModule(cloneModule(), independence.requireFactory(arguments, _require, name)) }
+      value: function() { return makeModule(cloneModule(), independence.requireFactory(arguments, _require, _module, name)) }
     });
   }
 
   defineMethod('isolate');
   defineMethod('override');
   defineMethod('rebuild');
+  defineMethod('recurse');
 
   return _exports
 }
 
 
-independence.requireFactory = function(mockArguments, _require, mode) {
+var count = 0
+function spaces() { return new Array(count).join('  ');}
+
+independence.requireFactory = function(mockArguments, _require, _module, mode) {
+
   var mocks = {}
-  for (var index = 0; index < mockArguments.length; index++) {
-    var arg = mockArguments[index]
-    for (var attribute in arg) mocks[attribute] = arg[attribute]
-  }
+  if (mode === 'recurse')
+    mocks = mockArguments[0]
+  else
+    for (var index = 0; index < mockArguments.length; index++) {
+      var arg = mockArguments[index]
+      for (var attribute in arg) mocks[attribute] = arg[attribute]
+    }
 
   return injectedRequire = function(dependencyPath, options) {
 
-    var name = (options && options.alias) || dependencyPath.split('/').pop().split('.')[0];
-    if (mocks[name]) return mocks[name];
-
-/*
     // mock name is the absolute path without the extension
-    var name = _require.resolve(dependencyPath).replace(/\.[^.]+$/, '').replace(/\/index$/, '')
-    var matches = Object.keys(mocks).filter(function(mockName){return new RegExp('[^a-zA-Z]'+mockName+'$').test(name)})
-    //console.log('switch', name)
+    var mockKey = _require.resolve(dependencyPath).replace(/\.[^.]+$/, '').replace(/\/index$/, '')
+    var matches = Object.keys(mocks).filter(function(key){return new RegExp('(^|[/])'+key+'$').test(mockKey)})
     switch(matches.length) {
 
       // Mock needs to be added
       case 0: break;
 
       // Mock is already available
-      case 1: return mocks[matches[0]];
+      case 1:
+        var mock = mocks[matches[0]];
+        if (mock !== 'circular dependency') return mock;
+        throw new Error('Independence: circular dependency on ' +matches[0]);
 
       // A mock name is not specific enough
-      default: throw new Error('Independence: "' +name+ 'matches multiple names: "' +matches.join('", "')+ '".');
+      default: throw new Error('Independence: "' +mockKey+ 'matches multiple names: "' +matches.join('", "')+ '".');
     }
-*/
 
     // isolate
-    if (mode === 'isolate') return
+    if (mode === 'isolate') return null
 
     // prepare to override
     var dependency = _require(dependencyPath)
@@ -75,15 +82,21 @@ independence.requireFactory = function(mockArguments, _require, mode) {
     // not wrapped with independence
     if (typeof dependency.isolate !== "function" || typeof dependency.rebuild !== "function") return dependency
 
-    // this is used to detect circular references
-    placeholder = {}
-    Object.defineProperty(placeholder, 'rebuild', {enumerable: false, value: function() {
-      throw new Error('Circular dependency detected for mock "'+name+'"')
-    }})
+    // Set placeholder to detect circular dependencies
+    mocks[mockKey] = 'circular dependency';
 
     // propagate mocks
-    mocks[name] = placeholder
-    var mock = mocks[name] = dependency.rebuild(mocks);
-    return mock
+    try {
+      //count++;
+      //console.log(spaces(), 'start', mockKey);
+      //var start = new Date()
+      mocks[mockKey] = dependency.recurse(mocks);
+      //console.log(spaces(), 'end  ', mockKey, new Date()-start);
+      //count--;
+      return mocks[mockKey]
+    } catch(e) {
+      e.message += '\nfrom ' + mockKey
+      throw e
+    }
   }
 }
