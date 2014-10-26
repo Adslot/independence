@@ -1,6 +1,6 @@
 {
   "name": "independence",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Dependency injection helper",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/xarvh/independence.git"
+    "url": "https://github.com/Adslot/independence.git"
   },
   "keywords": [
     "require",
@@ -29,12 +29,12 @@
   "license": "MIT",
   "devDependencies": {
     "coffee-script": "1.8.x",
-    "should": "~2.0.2",
-    "mocha": "~1.13.0"
+    "should": "2.0.x",
+    "mocha": "1.13.x"
   },
   "readmeFilename": "README.md",
   "bugs": {
-    "url": "https://github.com/xarvh/independence/issues"
+    "url": "https://github.com/Adslot/independence/issues"
   },
-  "homepage": "https://github.com/xarvh/independence"
+  "homepage": "https://github.com/Adslot/independence"
 }
