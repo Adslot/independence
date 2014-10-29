@@ -1,6 +1,6 @@
 {
   "name": "independence",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Dependency injection helper",
   "main": "index.js",
   "scripts": {
@@ -28,6 +28,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "coffee-script": "1.8.x",
     "should": "~2.0.2",
     "mocha": "~1.13.0"
   },
