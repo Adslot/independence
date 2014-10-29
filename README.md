@@ -1,7 +1,7 @@
 Independence
 ============
-
-[![Build Status](https://secure.travis-ci.org/xarvh/independence.png?branch=master)](http://travis-ci.org/xarvh/independence)
+[![NPM version][npm-image]][npm-url] [![Dependency Status][daviddm-url]][daviddm-image]
+[![Build Status](https://secure.travis-ci.org/Adslot/independence.png?branch=master)](http://travis-ci.org/Adslot/independence)
 
 Module dependency injection for easy and ridiculously *fast* mocking.
 
@@ -106,3 +106,8 @@ In package.json:
   "test":  "mocha --compilers coffee:independence/bin/wrapper"
 }
 ```
+
+[npm-url]: https://npmjs.org/package/independence
+[npm-image]: https://badge.fury.io/js/independence.svg
+[daviddm-url]: https://david-dm.org/adslot/independence.svg?theme=shields.io
+[daviddm-image]: https://david-dm.org/adslot/independence
