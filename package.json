@@ -1,13 +1,13 @@
 {
   "name": "independence",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Dependency injection helper",
   "main": "index.js",
   "scripts": {
     "test": "mocha -t 100s"
   },
   "bin": {
-    "independence-wrapper": "./bin/wrapper"
+    "independence-coffee-wrap": "./bin/coffee-wrap"
   },
   "repository": {
     "type": "git",
