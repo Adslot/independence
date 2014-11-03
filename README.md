@@ -3,109 +3,149 @@ Independence
 [![NPM version][npm-image]][npm-url] [![Dependency Status][daviddm-url]][daviddm-image]
 [![Build Status](https://secure.travis-ci.org/Adslot/independence.png?branch=master)](http://travis-ci.org/Adslot/independence)
 
-Module dependency injection for easy and ridiculously *fast* mocking.
+Module dependency injection for easy and fast mocking.
 
 Enables a module to quickly create clones of itself that have their dependencies mocked.
 
 
 When writing the module
 -----------------------
-Wrap your module in `"require('independence')(require, module, (function(require, module, exports) {" + yourCode + "}))"`.
+Wrap your module in
+`"require('independence')(require, module, (function(require, module, exports) {" + yourCode + "}))"`.
 
-In CoffeeScript:
-```coffee
-# monkey.coffee
+```javascript
+// monkey.js
 
-require('independence') require, module, (require, module, exports) ->
+require('independence')(require, module, function(require, module, exports){
 
-  moment = require 'moment'
-  _ = require 'lodash', alias: '_'
-  myService = require '../common/lib/services/myService'
-  myDatabase = require '../common/lib/myDatabase', alias: 'database'
+  var moment = require('moment');
+  var _ = require('lodash');
+  var myService = require('../common/lib/services/myService');
+  var myDatabase = require('../common/lib/myDatabase');
 
-  exports.fling = ->
-    console.log 'fling', moment().format 'YYYY-MM-DD'
+  exports.fling = function() {
+    console.log('fling', moment().format 'YYYY-MM-DD');
+  };
 
-  exports.swing = ->
-    console.log 'swing', _.find [1, 2, 3, 5, 7], (n) -> n % 2 is 0
+  exports.swing = function() {
+    console.log('swing', _.find([1, 2, 3, 5, 7], (n) -> n % 2 is 0));
+  };
+});
 ```
+
+With [CoffeeScript](http://coffeescript.org/), you can `require()` the provided
+[coffee-wrap](bin/coffee-wrap) to automatically wrap all your `.coffee` modules
+when transpiling them to JavaScript.
 
 
 When using the module
 ---------------------
 This works as normal:
-```coffee
-monkey = require './monkey'
+```javascript
+// someModule.js
 
-monkey.fling() # Will output `fling 2014-05-23`
-monkey.swing() # Will output `swing 2`
+var monkey = require('./monkey');
+
+monkey.fling(); // Will output `fling 2014-05-23`
+monkey.swing(); // Will output `swing 2`
 ```
 
 
 When testing the module
 -----------------------
-```coffee
-monkey = require './monkey'
+```javascript
+// tests/monkey.js
 
-# Override moment, but leave all other dependencies nominal:
-testMonkey = monkey.override
-  moment: -> format: -> 'Yaaap!'
+var monkey = require('./monkey');
 
-testMonkey.fling() # Will output `fling Yaaap!`
-testMonkey.swing() # Will work as normal
+function momentMock() {
+  return {
+    format: function() {
+      return "Yaaap!";
+    }
+  };
+}
 
 
-# Provide only moment and leave all other dependencies undefined:
-pureMonkey = monkey.isolate
-  moment: -> format: -> 'Yip!'
+// Provide only moment and leave all other dependencies undefined:
+var pureMonkey = monkey.independence('isolate', {moment: momentMock});
 
-pureMonkey.fling() # Will output `fling Yip!`
-pureMonkey.swing() # Will fail because `_` is undefined
+pureMonkey.fling() // Outputs `fling Yaaap!`
+pureMonkey.swing() // Fails because `_` is undefined
+
+
+// Override moment, but leave all other dependencies nominal:
+var testMonkey = monkey.independence('override', {moment: momentMock});
+
+testMonkey.fling() // Outputs `fling Yaaap!`
+testMonkey.swing() // Works as normal
+
+
+// Override moment in the monkey module and in ALL its wrapped dependencies
+// recursively (in this case, myService and myDatabase):
+var testMonkey = monkey.independence('rebuild', {moment: momentMock});
+```
+
+
+But what if two modules have the same name?
+---------------------------------------
+```javascript
+// controller.js
+var userModel = require('../lib/models/user');
+var userController = require('./user');
+
+...
+```
+
+```javascript
+// tests/controller.js
+var controller = require('../controllers/controller');
+
+var testController = controller.independence('isolate', {
+    'models/user': userModelMock,
+    'controllers/user': userControllerMock
+  });
+
+...
 ```
 
 
 Other stuff you can do
 ----------------------
 
-You can chain dependency objects:
-```coffee
-commonDependencies =
-  _: require 'lodash'
-  database: log: ->
-  myService: -> 'serviced'
+Chain dependency objects:
+```javascript
+var commonDependencies = {
+  lodash: require('lodash'),
+  myDatabase: {log: function(){}},
+  myService: function(){ return 'serviced';}
+};
 
-pureMonkey = monkey.isolate commonDependencies,
-  moment: -> format: -> 'Yip!'
+var testMonkey = monkey.independence('isolate', commonDependencies, {
+  moment: function(){ return {format: function(){ return 'Yip!';}};}
+};
 ```
 
 
-You can monkey-patch cleanly and nest <b>in</b>dependencies:
-```coffee
-database = require 'database'
-fruitData = require 'fruitData' # depends on database
-smootie = require 'smootie' # depends on fruitData
+Clone & monkey-patch:
+```javascript
+var database = require('database');
 
-databaseTest = database.override()
-databaseTest.getBananas = (callback) -> callback null, ['banana1', 'banana2']
-
-smootieTest = smootie.override
-  fruit: fruitData.override database: databaseTest
+var databaseTest = database.independence('override');
+databaseTest.getBananas = function(callback) {
+  callback(null, ['banana1', 'banana2']);
+};
 ```
 
 
-Using with mocha
-----------------------
+Coffee & Mocha
+--------------
 
-If you're using *mocha* module for running unit tests you can use a wrapper which compiles and wraps
-coffee files with independence header. So that you can seemlessly use DI in your tests.
+If you're using [CoffeeScript](http://coffeescript.org/) and
+[Mocha](http://mochajs.org/) you can use [bin/coffee-wrap](bin/coffee-wrap) to
+compiles and wraps `.coffee` modules with the Independence header:
 
-In package.json:
-
-```
-"scripts": {
-  "test":  "mocha --compilers coffee:independence/bin/wrapper"
-}
-```
+`mocha --compilers coffee:independence/bin/coffee-wrap`
 
 [npm-url]: https://npmjs.org/package/independence
 [npm-image]: https://badge.fury.io/js/independence.svg

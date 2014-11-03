@@ -1,11 +1,11 @@
 var originalModule = module
 
-require('..')(require, module, function(require, module, exports) {
+require('../..')(require, module, function(require, module, exports) {
 
   var fs = require('fs')
   this.getFs = function() {return fs}
 
-  var path = require('path', {alias: 'thePath'})
+  var path = require('path')
   exports.getPath = function() {return path}
 
   var adep = require('./aDependency')
@@ -14,4 +14,3 @@ require('..')(require, module, function(require, module, exports) {
   module.exports.module = module
   module.exports.originalModule = originalModule
 })
-

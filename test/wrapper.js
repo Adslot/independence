@@ -3,9 +3,9 @@ var fs = require('fs'),
   should = require('should');
 
 
-describe('wrapper', function() {
+describe('coffee-wrap', function() {
 
-  var bin = __dirname + '/../bin/wrapper',
+  var bin = __dirname + '/../bin/coffee-wrap',
     file = __dirname + '/data/coffeeFile.coffee',
     jsFile = __dirname + '/data/coffeeFile.js';
 

@@ -11,7 +11,7 @@
  * in this case it will behave as `coffee -c`, creating new .js files for each
  * .coffee file provided as an argument.
  *
- * Otherwise, the module can be required as a normal Node module and in this case
+ * Otherwise, the module can be required as a normal Node module: in this case
  * it will register itself as a compiler for all required .coffee modules.
  */
 
