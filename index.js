@@ -118,7 +118,14 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
 
   // Main function
-  function independence(mode) {
+  function independence() {
+
+    var mode = 'override';
+    var start = 0;
+    if (typeof arguments[0] === 'string') {
+      mode = arguments[0];
+      start = 1;
+    }
 
     var mocks, usedMocks;
     switch(mode) {
@@ -133,7 +140,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
         usedMocks = {}
         mocks = {}
 
-        for (var index = 1; index < arguments.length; index++) {
+        for (var index = start; index < arguments.length; index++) {
           var arg = arguments[index];
           for (var attribute in arg) mocks[attribute] = arg[attribute];
         }

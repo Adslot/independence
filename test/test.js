@@ -66,6 +66,10 @@ describe('independence', function() {
       aModule.independence('override', {}).getFs().should.be.exactly(fs);
     });
 
+    it('should be the default', function() {
+      aModule.independence({}).getFs().should.be.exactly(fs);
+    });
+
     it('should correctly clone the original module', function() {
       var test = aModule.independence('override');
       test.module.id.should.match(/aModule.js$/);
