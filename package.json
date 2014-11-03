@@ -7,7 +7,7 @@
     "test": "mocha -t 100s"
   },
   "bin": {
-    "independence-wrapper": "./bin/wrapper"
+    "independence-coffee-wrap": "./bin/coffee-wrap"
   },
   "repository": {
     "type": "git",
