@@ -1,3 +1,7 @@
+//TODO: add tests for packaged names
+//TODO: cleanup
+//TODO: improve code comments
+
 /*
  * Independence
  * https://github.com/Adslot/independence
@@ -25,73 +29,69 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
 
   // Builds the require() function to be injected in a clone module
-  function requireFactory(mode, mocks, usedMocks) {
+  function requireFactory(mode, mocks, requiredModules) {
 
-    // Keep track of names and paths to find ambiguous mock names
-    var mockPathsByName = {};
-    var mockRegExpByName = {};
 
-    // Cache name RegExps
-    function addMockRegExp(name) {
-      mockRegExpByName[name] = new RegExp('(^|[/])'+name+'$');
-    }
-
-    for (name in mocks)
-      addMockRegExp(name);
-
-    // This is the `require` function passed to the cloned module
-    return function injectedRequire(dependencyPath) {
+    function makeModuleUniqueId(requiredPath) {
 
       // Get the base module name by removing the path
-      var base = dependencyPath.slice(dependencyPath.lastIndexOf('/') + 1);
+      var baseName = requiredPath.slice(requiredPath.lastIndexOf('/') + 1);
 
-      // The path will be used as unique identifier for the mock
-      // to build it, remove anything that follows the base name
-      var path = _require.resolve(dependencyPath);
+      // build it, remove anything that follows the base name
+      var path = _require.resolve(requiredPath);
       var lastIndex = path.lastIndexOf('.');
       if (lastIndex !== -1) path = path.slice(0, lastIndex);
-      path = path.slice(0, (path+'/').lastIndexOf('/'+base+'/') + 1 + base.length);
 
-      // This is o(nn) but it is the only way I can think of to catch multiple matches
+      return path.slice(0, (path+'/').lastIndexOf('/'+baseName+'/') + 1 + baseName.length);
+    }
+
+
+    function getProvidedMock(mockName, moduleUniqueId) {
+      var mock = mocks[mockName];
+
+      // A MOCK NAME must match at most one MODULE.
+      // ex: mock 'zebra' will match both modules '/home/u/project/database/zebra' and '/home/u/project/models/zebra'
+
+      // Ensure that the same mock name has not been used already for a different module:
+      if(mock.uniqueId && mock.uniqueId !== moduleUniqueId)
+        throw new Error('Mock name "'+mockName+'" could refer to either '+mock.uniqueId+
+            ' or '+moduleUniqueId+', please use a more specific mock name');
+
+      mock.uniqueId = moduleUniqueId;
+      mock.used = true;
+
+      // Done
+      return mocks[mockName].module;
+    }
+
+
+    // This is the `require` function passed to the cloned module
+    return function injectedRequire(requiredPath) {
+
+      var moduleUniqueId = makeModuleUniqueId(requiredPath);
+
+      // Check mocks that match the required module
       var matches = [];
-      for (name in mocks) if (mockRegExpByName[name].test(path)) matches.push(name);
+      for (m in mocks) if (mocks[m].regExp.test(moduleUniqueId)) matches.push(m);
 
       switch(matches.length) {
 
-        // Mock needs to be added
+        // No mock provided
         case 0: break;
 
         // Mock is already available
-        case 1:
-          var name = matches[0];
+        case 1: return getProvidedMock(matches[0], moduleUniqueId);
 
-          // Check for ambiguous mock names
-          var p = mockPathsByName[name];
-          if(p && p !== path)
-            throw new Error('Mock name "'+name+'" could refer to either '+p+' or '+path+', please use a more specific mock name');
-
-          mockPathsByName[name] = path;
-          addMockRegExp(name);
-
-          // Flag the mock as used
-          usedMocks[name] = true;
-
-          // Check for circular dependencies
-          if (mocks[name] === 'circular dependency')
-            throw new Error('Circular dependency on ' +name);
-
-          // Done
-          return mocks[name];
-
-        // A module's path is matched by more than one mock name
-        default: throw new Error('Module ' +path+ ' matches multiple names: "' +matches.join('", "')+ '"');
+        // A MODULE must be matched by at most ONE MOCK
+        // ex: module '/home/user/project/mammal/possum' would be matched by both 'possum' and 'mammal/possum'
+        default: throw new Error('Module ' +moduleUniqueId+ ' is matched by multiple mock names: "' +matches.join('", "')+ '"');
       }
 
       // isolate
       if (mode === 'isolate') return null;
 
       // prepare to override
-      var dependency = _require(dependencyPath);
+      var dependency = _require(requiredPath);
 
       // override
       if (mode === 'override') return dependency;
@@ -99,18 +99,21 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
       // not wrapped with Independence
       if (typeof dependency.independence !== "function") return dependency;
 
-      // Set placeholder to detect circular dependencies
-      mocks[path] = 'circular dependency';
+      // Check for circular dependencies
+      if (requiredModules[moduleUniqueId] === 'circular dependency')
+        throw new Error('Circular dependency on ' +moduleUniqueId);
 
-      // Flag the mock as used
-      usedMocks[path] = true;
+      if (requiredModules[moduleUniqueId])
+        return requiredModules[moduleUniqueId];
+
+      // Set placeholder to detect circular dependencies
+      requiredModules[moduleUniqueId] = 'circular dependency';
 
       // propagate mocks
       try {
-        mocks[path] = dependency.independence('_recurse', mocks, usedMocks);
-        return mocks[path];
+        return requiredModules[moduleUniqueId] = dependency.independence('_recurse', mocks, requiredModules);
       } catch(e) {
-        e.message += '\nfrom ' + path;
+        e.message += '\nfrom ' + moduleUniqueId;
         throw e;
       }
     }
@@ -131,19 +134,26 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
     switch(mode) {
       case '_recurse':
         mocks = arguments[1];
-        usedMocks = arguments[2];
+        requiredModules = arguments[2];
         break;
 
       case 'isolate':
       case 'override':
       case 'rebuild':
-        usedMocks = {}
-        mocks = {}
+        mocks = {};
+        requiredModules = {};
 
         for (var index = start; index < arguments.length; index++) {
           var arg = arguments[index];
-          for (var attribute in arg) mocks[attribute] = arg[attribute];
+          for (var attribute in arg) mocks[attribute] = {module: arg[attribute]};
         }
+
+        for (var m in mocks) {
+          mocks[m].regExp = new RegExp('(^|[/])'+m+'$');
+          mocks[m].uniquePath = '';
+          mocks[m].used = false;
+        }
+
         break;
 
       default:
@@ -151,8 +161,8 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
     }
 
     // Ensure that all provided mocks have been used
-    var clone = makeModule(cloneModule(), requireFactory(mode, mocks, usedMocks));
-    for (var mock in mocks) if(!usedMocks[mock]) throw new Error('Unused mock: '+mock);
+    var clone = makeModule(cloneModule(), requireFactory(mode, mocks, requiredModules));
+    if(mode !== '_recurse') for (var m in mocks) if(!mocks[m].used) throw new Error('Unused mock: '+m);
     return clone;
   }
 

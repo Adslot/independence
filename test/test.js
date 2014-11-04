@@ -117,7 +117,7 @@ describe('independence', function() {
             'data/sblorp': 'moock',
             'test/data/sblorp': 'moock'
           });
-        }).should.throw(/Module .*test\/data\/sblorp matches multiple names: "data\/sblorp", "test\/data\/sblorp"/);
+        }).should.throw(/Module .*test\/data\/sblorp is matched by multiple mock names: "data\/sblorp", "test\/data\/sblorp"/);
       });
 
       it('should work with multiple objetcs', function() {
