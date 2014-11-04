@@ -108,7 +108,7 @@ describe('independence', function() {
       it('should complain if two modules are reached by the same mock name', function() {
         (function() {
           deep.independence(mode, {sblorp: 'moock'});
-        }).should.throw(/Mock name "sblorp" could refer to either .+data\/sblorp or .+sub\/sblorp, please use a more specific mock name/);
+        }).should.throw(/Mock name "sblorp" could refer to either ".+data\/sblorp" or ".+sub\/sblorp", please use a more specific mock name/);
       });
 
       it('should complain if two mock names reach the same module', function() {
@@ -117,7 +117,7 @@ describe('independence', function() {
             'data/sblorp': 'moock',
             'test/data/sblorp': 'moock'
           });
-        }).should.throw(/Module .*test\/data\/sblorp matches multiple names: "data\/sblorp", "test\/data\/sblorp"/);
+        }).should.throw(/Module ".*test\/data\/sblorp" is matched by multiple mock names: "data\/sblorp", "test\/data\/sblorp"/);
       });
 
       it('should work with multiple objetcs', function() {
