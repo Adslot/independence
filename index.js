@@ -58,14 +58,13 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
             ' or '+moduleUniqueId+', please use a more specific mock name');
 
       mock.uniqueId = moduleUniqueId;
-      mock.used = true;
 
       // Done
       return mocks[mockName].module;
     }
 
 
-    // This is the `require` function passed to the cloned module
+    // This is the require() function passed to the cloned module
     return function injectedRequire(requiredPath) {
 
       var moduleUniqueId = makeModuleUniqueId(requiredPath);
@@ -148,11 +147,8 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
           for (var attribute in arg) mocks[attribute] = {module: arg[attribute]};
         }
 
-        for (var m in mocks) {
+        for (var m in mocks)
           mocks[m].regExp = new RegExp('(^|[/])'+m+'$');
-          mocks[m].uniquePath = '';
-          mocks[m].used = false;
-        }
 
         break;
 
@@ -162,7 +158,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
     // Ensure that all provided mocks have been used
     var clone = makeModule(cloneModule(), requireFactory(mode, mocks, requiredModules));
-    if(mode !== '_recurse') for (var m in mocks) if(!mocks[m].used) throw new Error('Unused mock: '+m);
+    if(mode !== '_recurse') for (var m in mocks) if(!mocks[m].uniqueId) throw new Error('Unused mock: '+m);
     return clone;
   }
 
