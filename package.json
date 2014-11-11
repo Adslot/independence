@@ -1,6 +1,6 @@
 {
   "name": "independence",
-  "version": "0.6.1",
+  "version": "0.6.4",
   "description": "Dependency injection helper",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,10 @@
     "coffee-script": "1.8.x",
     "jshint": "2.5.10",
     "should": "2.0.x",
-    "mocha": "1.13.x"
+    "mocha": "1.13.x",
+
+    "knox":"https://github.com/LearnBoost/knox/archive/4ff7116259f69196affb154a2f7bb26a188ebd31.tar.gz",
+    "bcrypt":"https://github.com/ncb000gt/node.bcrypt.js/archive/360b1663eab81920b116c6a8ad128533b3bc642c.tar.gz"
   },
   "readmeFilename": "README.md",
   "bugs": {
