@@ -90,7 +90,7 @@ describe('independence', function() {
     });
 
     it('should provide undefined when a module is not provided', function() {
-      (aModule.independence('isolate', {}).getFs() === null).should.be.true;
+      aModule.independence('isolate', {}).getFs().should.eql({});
     });
   });
 

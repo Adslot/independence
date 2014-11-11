@@ -87,7 +87,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
       }
 
       // isolate
-      if (mode === 'isolate') return null;
+      if (mode === 'isolate') return {};
 
       // prepare to override
       var dependency = _require(requiredPath);
