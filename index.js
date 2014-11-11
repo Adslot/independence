@@ -71,7 +71,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
       // Check mocks that match the required module
       var matches = [];
-      for (m in mocks) if (mocks[m].regExp.test(moduleUniqueId)) matches.push(m);
+      for (var m in mocks) if (mocks[m].regExp.test(moduleUniqueId)) matches.push(m);
 
       switch(matches.length) {
 
@@ -115,7 +115,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
         e.message += '\nfrom ' + moduleUniqueId;
         throw e;
       }
-    }
+    };
   }
 
 
@@ -129,7 +129,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
       start = 1;
     }
 
-    var mocks, usedMocks;
+    var mocks, requiredModules;
     switch(mode) {
       case '_recurse':
         mocks = arguments[1];
@@ -179,4 +179,4 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
   }
 
   return _exports;
-}
+};
