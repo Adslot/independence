@@ -71,7 +71,7 @@ function momentMock() {
 var pureMonkey = monkey.independence('isolate', {moment: momentMock});
 
 pureMonkey.fling() // Outputs `fling Yaaap!`
-pureMonkey.swing() // Fails because `_` is undefined
+pureMonkey.swing() // Fails because `_` is an empty Object
 
 
 // Override moment, but leave all other dependencies nominal:
