@@ -1,4 +1,3 @@
-//TODO: add tests for packaged names
 //TODO: cleanup
 //TODO: improve code comments
 
@@ -83,7 +82,8 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
         // A MODULE must be matched by at most ONE MOCK
         // ex: module '/home/user/project/mammal/possum' would be matched by both 'possum' and 'mammal/possum'
-        default: throw new Error('Module "' +moduleUniqueId+ '" is matched by multiple mock names: "' +matches.join('", "')+ '"');
+        default: throw new Error('Module "' +moduleUniqueId+ '" is matched by multiple mock names: "'+
+            matches.join('", "')+ '"');
       }
 
       // isolate

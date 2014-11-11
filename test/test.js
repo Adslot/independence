@@ -7,6 +7,7 @@ describe('independence', function() {
 
   var deep = require('./data/deep');
   var green = require('./data/green');
+  var packs = require('./data/packs');
   var aModule = require('./data/aModule');
 
 
@@ -128,6 +129,14 @@ describe('independence', function() {
           fs: 'overriding mock'
         }
         aModule.independence(mode, obj1, obj2).getFs().should.be.exactly('overriding mock');
+      });
+
+      it('should correctly match packages with unusual internal structure', function() {
+        var clone = packs.independence(mode, {knox: 'hello', bcrypt: 'wuut'});
+        clone.exportedKnox.should.be.exactly('hello');
+        clone.exportedBcrypt.should.be.exactly('wuut');
+
+
       });
 
       it('should guess a relative dependency name', function() {
