@@ -53,9 +53,9 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
       // ex: mock 'zebra' will match both modules '/home/u/project/database/zebra' and '/home/u/project/models/zebra'
 
       // Ensure that the same mock name has not been used already for a different module:
-      if(mock.uniqueId && mock.uniqueId !== moduleUniqueId)
-        throw new Error('Mock name "'+mockName+'" could refer to either '+mock.uniqueId+
-            ' or '+moduleUniqueId+', please use a more specific mock name');
+      if (mock.uniqueId && mock.uniqueId !== moduleUniqueId)
+        throw new Error('Mock name "'+mockName+'" could refer to either "'+mock.uniqueId+
+            '" or "'+moduleUniqueId+'", please use a more specific mock name');
 
       mock.uniqueId = moduleUniqueId;
 
@@ -83,7 +83,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
         // A MODULE must be matched by at most ONE MOCK
         // ex: module '/home/user/project/mammal/possum' would be matched by both 'possum' and 'mammal/possum'
-        default: throw new Error('Module ' +moduleUniqueId+ ' is matched by multiple mock names: "' +matches.join('", "')+ '"');
+        default: throw new Error('Module "' +moduleUniqueId+ '" is matched by multiple mock names: "' +matches.join('", "')+ '"');
       }
 
       // isolate
@@ -158,7 +158,7 @@ module.exports = function independenceWrapper(_require, _module, moduleInjector)
 
     // Ensure that all provided mocks have been used
     var clone = makeModule(cloneModule(), requireFactory(mode, mocks, requiredModules));
-    if(mode !== '_recurse') for (var m in mocks) if(!mocks[m].uniqueId) throw new Error('Unused mock: '+m);
+    if (mode !== '_recurse') for (var m in mocks) if (!mocks[m].uniqueId) throw new Error('Unused mock: '+m);
     return clone;
   }
 
