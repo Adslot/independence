@@ -135,8 +135,6 @@ describe('independence', function() {
         var clone = packs.independence(mode, {knox: 'hello', bcrypt: 'wuut'});
         clone.exportedKnox.should.be.exactly('hello');
         clone.exportedBcrypt.should.be.exactly('wuut');
-
-
       });
 
       it('should guess a relative dependency name', function() {
