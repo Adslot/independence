@@ -110,34 +110,6 @@ var testController = controller.independence('isolate', {
 ```
 
 
-Other stuff you can do
-----------------------
-
-Chain dependency objects:
-```javascript
-var commonDependencies = {
-  lodash: require('lodash'),
-  myDatabase: {log: function(){}},
-  myService: function(){ return 'serviced';}
-};
-
-var testMonkey = monkey.independence('isolate', commonDependencies, {
-  moment: function(){ return {format: function(){ return 'Yip!';}};}
-};
-```
-
-
-Clone & monkey-patch:
-```javascript
-var database = require('database');
-
-var databaseTest = database.independence('override');
-databaseTest.getBananas = function(callback) {
-  callback(null, ['banana1', 'banana2']);
-};
-```
-
-
 Coffee & Mocha
 --------------
 
@@ -146,6 +118,129 @@ If you're using [CoffeeScript](http://coffeescript.org/) and
 compiles and wraps `.coffee` modules with the Independence header:
 
 `mocha --compilers coffee:independence/bin/coffee-wrap`
+
+
+Patterns and Tricks
+-------------------
+
+
+### Clone locally ###
+_Creating clones is inexpensive_
+
+```coffeescript
+patient = require 'a/module/of/mine'
+
+describe 'a/module/of/mine', ->
+
+  describe 'peelBanana()', ->
+
+    it 'should correctly peel bananas', (done) ->
+      clone = patient.independence 'tables/bananas': get: (id, cb) -> cb null, {id, banananess: true}
+      clone.peelBanana 3, done
+
+    it 'should handle table errors', (done) ->
+      clone = patient.independence 'tables/bananas': get: (id, cb) -> cb new Error 'Banana not found'
+      clone.peelBanana 3, (err) ->
+        expect(err).to.match /not found/
+        done()
+```
+
+
+
+### Combine Mocks ###
+_Independence can use multiple mocks_
+
+```coffeescript
+patient = require 'a/COMPLEX/module/of/mine'
+
+describe 'a/COMPLEX/module/of/mine', ->
+
+  baseMocks =
+    'utils/veryUtil': ...
+    'shared/happiness': ...
+    'tables/bananas': ...
+    'tables/apricots': freeze: (args..., cb) -> cb null, []
+
+  describe 'makeDessert()', ->
+
+    it 'should correctly freeze apricots', (done) ->
+
+      frozen = sinon.spy()
+      clone = patient.independence baseMocks,
+        'tables/apricots':
+          freeze: (id, temperature, cb) ->
+            expect(temperature).to.be '-5C'
+            frozen()
+            cb null, [-4, -5, -5, -5, -5]
+
+      clone.makeDessert (err) ->
+        expect(frozen.calledOnce).to.be true
+        done()
+```
+
+
+
+### Throwaway Monkeys ###
+_Monkey-patched clones don't need to be restored_
+
+```coffeescript
+patient = require 'a/module/of/mine'
+
+describe 'a/module/of/mine', ->
+
+  describe 'peelBanana()', ->
+
+    it 'should correctly blend bananas', (done) ->
+      clone = patient.independence()
+      clone.peelBanana = (id, cb) -> cb null, {}
+      clone.blendBanana 3, done
+```
+
+
+
+### Mocks as Functions ###
+_We can reuse the same mock for different tests_
+
+```coffeescript
+patient = require 'ANOTHER/module/of/mine'
+
+
+describe 'ANOTHER/module/of/mine', ->
+
+
+  baseMockFruitQuery = (fruitApiResponse) ->
+    'utils/veryUtil': ...
+    'shared/happiness': ...
+    'integration/fruit':
+      connect: (fruit, cb) -> cb null, connection: 'up'
+      query: fruitApiResponse ? (args..., cb) -> cb null, []
+
+
+  describe 'syncFruitDessert()', ->
+
+    it 'should handle the fruit response', (done) ->
+      clone = patient.independence baseMockFruitQuery (args..., cb) -> cb null, [fruit: 'banana']
+      clone.syncDessert done
+
+    it 'should handle fruit errors', (done) ->
+      clone = patient.independence baseMockFruitQuery (args..., cb) -> cb new Error 'moldy'
+      clone.syncDessert (err) ->
+        expect(err).to.match /fruit is moldy/
+        done()
+```
+
+
+### Rebuild ###
+
+* It is in beta
+* It is slow
+
+A <- B <- C
+
+`A.independence 'C'` means `A.independence 'override', 'C'`: it does nothing
+
+`A.independence 'rebuild', 'C'` instead injects C in ALL nested dependencies originating from A
+
 
 [npm-url]: https://npmjs.org/package/independence
 [npm-image]: https://badge.fury.io/js/independence.svg
