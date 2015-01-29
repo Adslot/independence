@@ -3,121 +3,154 @@ Independence
 [![NPM version][npm-image]][npm-url] [![Dependency Status][daviddm-url]][daviddm-image]
 [![Build Status](https://secure.travis-ci.org/Adslot/independence.png?branch=master)](http://travis-ci.org/Adslot/independence)
 
-Module dependency injection for easy and fast mocking.
+Node.js module dependency injection for easy and fast mocking.
 
 Enables a module to quickly create clones of itself that have their dependencies mocked.
+
+*Independence* works with plain JavaScript, but the examples are given in
+[CoffeeScript](http://coffeescript.org/) for readability.
 
 
 When writing the module
 -----------------------
-Wrap your module in
-`"require('independence')(require, module, (function(require, module, exports) {" + yourCode + "}))"`.
+Your module's code needs to be wrapped with Independence:
 
-```javascript
-// monkey.js
+```coffeescript
+# monkey.coffee
 
-require('independence')(require, module, function(require, module, exports){
+require('independence') require, module, (require, module, exports) ->
 
-  var moment = require('moment');
-  var _ = require('lodash');
-  var myService = require('../common/lib/services/myService');
-  var myDatabase = require('../common/lib/myDatabase');
+  _ = require 'lodash'
+  moment = require 'moment'
+  myDatabase = require '../common/lib/myDatabase'
 
-  exports.fling = function() {
-    console.log('fling', moment().format 'YYYY-MM-DD');
-  };
+  # Output 'fling' and the formatted current date
+  exports.flingTime = -> console.log 'fling', moment().format 'YYYY-MM-DD'
 
-  exports.swing = function() {
-    console.log('swing', _.find([1, 2, 3, 5, 7], (n) -> n % 2 is 0));
-  };
-});
+  # Output 'Yiiip!' and the database list of mammals
+  exports.yellMammals = -> console.log 'Yiiip!', myDatabase.availableMammals
+
+  # Same as above, bug removes duplicates
+  exports.yellMammalsUnique = -> console.log 'Yaaap!', _.unique myDatabase.availableMammals
 ```
 
-With [CoffeeScript](http://coffeescript.org/), you can `require()` the provided
-[coffee-wrap](bin/coffee-wrap) to automatically wrap all your `.coffee` modules
-when transpiling them to JavaScript.
+But if you are using CoffeeScript, this can be avoided by `require`ing the
+[coffee-wrap](bin/coffee-wrap) script, which will automatically add the wrapper
+when transpiling to JavaScript.
+
+With [Mocha](http://mochajs.org/):
+```bash
+mocha --compilers coffee:independence/bin/coffee-wrap
+```
 
 
 When using the module
 ---------------------
-This works as normal:
-```javascript
-// someModule.js
+This works normally:
+```coffeescript
+# someModule.coffee
 
-var monkey = require('./monkey');
+monkey = require './monkey'
 
-monkey.fling(); // Will output `fling 2014-05-23`
-monkey.swing(); // Will output `swing 2`
+monkey.flingTime()         # Outputs `fling 2014-05-23`
+monkey.yellMammals()       # Outputs `Yiiip! ['monkeys', 'hyenas', 'monkeys']`
+monkey.yellMammalsUnique() # Outputs `Yaaap! ['monkeys', 'hyenas']`
 ```
 
 
 When testing the module
 -----------------------
-```javascript
-// tests/monkey.js
+```coffeescript
+# tests/monkey.coffee
 
-var monkey = require('./monkey');
-
-function momentMock() {
-  return {
-    format: function() {
-      return "Yaaap!";
-    }
-  };
-}
+monkey = require '../lib/monkey'
 
 
-// Provide only moment and leave all other dependencies undefined:
-var pureMonkey = monkey.independence('isolate', {moment: momentMock});
+# Mock the `moment` and `myDatabase` modules, but leave the original `lodash`
+mocks =
 
-pureMonkey.fling() // Outputs `fling Yaaap!`
-pureMonkey.swing() // Fails because `_` is an empty Object
+  moment: ->
+    return format: (fmt) ->
+      return 'Yp yp!'
 
-
-// Override moment, but leave all other dependencies nominal:
-var testMonkey = monkey.independence('override', {moment: momentMock});
-
-testMonkey.fling() // Outputs `fling Yaaap!`
-testMonkey.swing() // Works as normal
+  myDatabase:
+    availableMammals: ['squirrels', 'squirrels']
 
 
-// Override moment in the monkey module and in ALL its wrapped dependencies
-// recursively (in this case, myService and myDatabase):
-var testMonkey = monkey.independence('rebuild', {moment: momentMock});
+# Create a test clone of the `monkey` module that uses a mock of the `moment` module:
+# ('override' is the default mode, so you can really omit it)
+testMonkeyClone = monkey.independence 'override', mocks
+
+testMonkeyClone.flingTime()         # Outputs "fling Yp yp!"
+testMonkeyClone.yellMammals()       # Outputs "Yiiip! ['squirrels', 'squirrels']"
+testMonkeyClone.yellMammalsUnique() # Outputs "Yaaap! ['squirrels']"
+```
+
+By default, Independence overrides only modules directly required by the cloned module.
+This means that if in the above example the `myDatabase` or `myService` modules require
+`moment` they will still get the original one rather than the mock.
+
+
+Recursive dependencies
+----------------------
+To recursively inject mocks from a module down to all its nested dependencies you can specify
+`'rebuild'` as first argument:
+```coffeescript
+# The `monkey` module depends on the `myDatabase` module: if in turn it requires
+# the `moment` module, it will also be provided with the `moment` mock.
+deepMonkeyClone = monkey.independence 'rebuild', mocks
+```
+
+Independence will traverse recursively only on those dependencies that are themselves
+wrapped with Independence, which means that for third-party libraries the original
+modules will always be provided.
+
+This is especially useful with functional or integration testing.
+
+
+Isolating a module
+------------------
+To guarantee that the code being tested does not inadvertently call anything outside of
+the test scope Independence can create a clone where all dependencies that are not
+explicitly mocked are replaced with an empty Object:
+
+```coffeescript
+# Provide only the `moment` module and replace all other dependencies with {}
+
+pureMonkeyClone = monkey.independence 'isolate', mocks
+
+# Will throw `TypeError: Object #<Object> has no method 'unique'` because
+# `require 'lodash'` returns an empty Object:
+pureMonkeyClone.yellMammalsUnique()
 ```
 
 
 But what if two modules have the same name?
----------------------------------------
-```javascript
-// controller.js
-var userModel = require('../lib/models/user');
-var userController = require('./user');
+-------------------------------------------
+```coffeescript
+# controller.coffee
 
-...
+userModel = require '../lib/models/user'
+userController = require './user'
+
+…
 ```
 
-```javascript
-// tests/controller.js
-var controller = require('../controllers/controller');
+```coffeescript
+# tests/controller.coffee
+controller = require '../controllers/controller'
 
-var testController = controller.independence('isolate', {
-    'models/user': userModelMock,
-    'controllers/user': userControllerMock
-  });
+…
 
-...
+controllerClone = controller.independence 'isolate',
+  'models/user': userModelMock
+  'controllers/user': userControllerMock
+
+…
 ```
 
-
-Coffee & Mocha
---------------
-
-If you're using [CoffeeScript](http://coffeescript.org/) and
-[Mocha](http://mochajs.org/) you can use [bin/coffee-wrap](bin/coffee-wrap) to
-compiles and wraps `.coffee` modules with the Independence header:
-
-`mocha --compilers coffee:independence/bin/coffee-wrap`
+Internally, Independence uses a module's `require.resolve()` method to get the unique absolute
+path of each dependency, and it will throw an error if a mock name can refer to more than one.
 
 
 Patterns and Tricks
@@ -125,12 +158,15 @@ Patterns and Tricks
 
 
 ### Clone locally ###
-_Creating clones is inexpensive_
+Creating clones is inexpensive: clones can be created for each test case without
+significantly affecting test duration:
 
 ```coffeescript
 patient = require 'a/module/of/mine'
 
+
 describe 'a/module/of/mine', ->
+
 
   describe 'peelBanana()', ->
 
@@ -145,21 +181,26 @@ describe 'a/module/of/mine', ->
         done()
 ```
 
+Still, remember that using `'rebuild'` to clone your whole app may require
+cloning hundreds of modules.
 
 
 ### Combine Mocks ###
-_Independence can use multiple mocks_
+Independence accepts multiple mocks as arguments, and merging them with the
+next overriding the previous.
 
 ```coffeescript
 patient = require 'a/COMPLEX/module/of/mine'
 
+
 describe 'a/COMPLEX/module/of/mine', ->
 
   baseMocks =
-    'utils/veryUtil': ...
-    'shared/happiness': ...
-    'tables/bananas': ...
+    'utils/veryUtil': …
+    'shared/happiness': …
+    'tables/bananas': …
     'tables/apricots': freeze: (args..., cb) -> cb null, []
+
 
   describe 'makeDessert()', ->
 
@@ -179,14 +220,15 @@ describe 'a/COMPLEX/module/of/mine', ->
 ```
 
 
-
 ### Throwaway Monkeys ###
 _Monkey-patched clones don't need to be restored_
 
 ```coffeescript
 patient = require 'a/module/of/mine'
 
+
 describe 'a/module/of/mine', ->
+
 
   describe 'peelBanana()', ->
 
@@ -195,7 +237,6 @@ describe 'a/module/of/mine', ->
       clone.peelBanana = (id, cb) -> cb null, {}
       clone.blendBanana 3, done
 ```
-
 
 
 ### Mocks as Functions ###
@@ -209,37 +250,25 @@ describe 'ANOTHER/module/of/mine', ->
 
 
   baseMockFruitQuery = (fruitApiResponse) ->
-    'utils/veryUtil': ...
-    'shared/happiness': ...
+    'utils/veryUtil': …
+    'shared/happiness': …
     'integration/fruit':
       connect: (fruit, cb) -> cb null, connection: 'up'
       query: fruitApiResponse ? (args..., cb) -> cb null, []
 
 
-  describe 'syncFruitDessert()', ->
+  describe 'eatFruitDessert()', ->
 
     it 'should handle the fruit response', (done) ->
       clone = patient.independence baseMockFruitQuery (args..., cb) -> cb null, [fruit: 'banana']
-      clone.syncDessert done
+      clone.eatDessert done
 
     it 'should handle fruit errors', (done) ->
       clone = patient.independence baseMockFruitQuery (args..., cb) -> cb new Error 'moldy'
-      clone.syncDessert (err) ->
+      clone.eatDessert (err) ->
         expect(err).to.match /fruit is moldy/
         done()
 ```
-
-
-### Rebuild ###
-
-* It is in beta
-* It is slow
-
-A <- B <- C
-
-`A.independence 'C'` means `A.independence 'override', 'C'`: it does nothing
-
-`A.independence 'rebuild', 'C'` instead injects C in ALL nested dependencies originating from A
 
 
 [npm-url]: https://npmjs.org/package/independence
