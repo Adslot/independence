@@ -186,10 +186,11 @@ cloning hundreds of modules.
 
 
 ### Combine Mocks ###
-Independence accepts multiple mocks as arguments, and merging them with the
-next overriding the previous.
+Independence accepts multiple mock objects as arguments, merging them together (the
+next overrides the previous).
 
 ```coffeescript
+sinon = require 'sinon'
 patient = require 'a/COMPLEX/module/of/mine'
 
 
@@ -230,7 +231,7 @@ patient = require 'a/module/of/mine'
 describe 'a/module/of/mine', ->
 
 
-  describe 'peelBanana()', ->
+  describe 'blendBanana()', ->
 
     it 'should correctly blend bananas', (done) ->
       clone = patient.independence()
